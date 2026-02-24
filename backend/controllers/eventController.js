@@ -332,11 +332,17 @@ const isValidHttpUrl = (value) => {
   }
 };
 
-const isValidImageProofInput = (value) => {
-  if (typeof value !== "string" || !value.trim()) return false;
+const validateImageProofInput = (value) => {
+  if (typeof value !== "string" || !value.trim()) {
+    return { ok: false, error: "paymentProofUrl is required" };
+  }
   const trimmed = value.trim();
-  if (isValidHttpUrl(trimmed)) return true;
-  return /^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(trimmed);
+  if (trimmed.length > 2_000_000) {
+    return { ok: false, error: "paymentProofUrl is too large. use a public image URL or smaller image." };
+  }
+  if (isValidHttpUrl(trimmed)) return { ok: true };
+  if (/^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(trimmed)) return { ok: true };
+  return { ok: false, error: "paymentProofUrl must be an http/https URL or image data URL" };
 };
 
 const postEventToDiscordWebhook = async ({ webhookUrl, event }) => {
@@ -815,9 +821,10 @@ const registerForEvent = async (req, res) => {
         return res.status(400).json({ message: "selected merchandise variant does not exist" });
       }
 
-      if (!isValidImageProofInput(req.body?.paymentProofUrl)) {
+      const proofValidation = validateImageProofInput(req.body?.paymentProofUrl);
+      if (!proofValidation.ok) {
         await session.abortTransaction();
-        return res.status(400).json({ message: "valid paymentProofUrl (http/https URL or image data URL) is required for merchandise order" });
+        return res.status(400).json({ message: proofValidation.error });
       }
 
       payment = {

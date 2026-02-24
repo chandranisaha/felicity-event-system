@@ -1,5 +1,33 @@
 const nodemailer = require("nodemailer");
 
+const sendViaResend = async ({ from, to, subject, html }) => {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("resend api key not configured");
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject,
+      html,
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`resend email failed: ${text}`);
+  }
+
+  return { sent: true, provider: "resend" };
+};
+
 const getTransporter = () => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     return null;
@@ -15,11 +43,6 @@ const getTransporter = () => {
 };
 
 const sendTicketEmail = async ({ to, participantName, event, ticketId, qrCode }) => {
-  const transporter = getTransporter();
-  if (!transporter) {
-    throw new Error("email service not configured");
-  }
-
   let qrCid = null;
   let attachments = [];
   const dataUrlMatch =
@@ -41,6 +64,8 @@ const sendTicketEmail = async ({ to, participantName, event, ticketId, qrCode })
   }
 
   const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+  const subject = `Your Ticket for ${event.name}`;
+  const resendPrefersInlineQr = process.env.EMAIL_PROVIDER === "resend" || !!process.env.RESEND_API_KEY;
   const html = `
     <h2>Ticket Confirmation</h2>
     <p>Hi ${participantName || "Participant"},</p>
@@ -52,18 +77,29 @@ const sendTicketEmail = async ({ to, participantName, event, ticketId, qrCode })
       <li><strong>Ticket ID:</strong> ${ticketId}</li>
     </ul>
     <p>Show this QR at entry.</p>
-    ${qrCid ? `<img src="cid:${qrCid}" alt="ticket qr code" />` : `<p>qr unavailable</p>`}
+    ${
+      resendPrefersInlineQr
+        ? qrCode
+          ? `<img src="${qrCode}" alt="ticket qr code" />`
+          : "<p>qr unavailable</p>"
+        : qrCid
+          ? `<img src="cid:${qrCid}" alt="ticket qr code" />`
+          : "<p>qr unavailable</p>"
+    }
   `;
 
-  await transporter.sendMail({
-    from,
-    to,
-    subject: `Your Ticket for ${event.name}`,
-    html,
-    attachments,
-  });
+  if (process.env.EMAIL_PROVIDER === "resend" || process.env.RESEND_API_KEY) {
+    return sendViaResend({ from, to, subject, html });
+  }
 
-  return { sent: true };
+  const transporter = getTransporter();
+  if (!transporter) {
+    throw new Error("email service not configured");
+  }
+
+  await transporter.sendMail({ from, to, subject, html, attachments });
+
+  return { sent: true, provider: "smtp" };
 };
 
 module.exports = {

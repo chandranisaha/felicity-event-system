@@ -149,19 +149,61 @@ const EventDetailsPage = ({ auth }) => {
 
   const uploadProofImage = (file) =>
     new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(new Error("failed to read selected image"));
-      reader.readAsDataURL(file);
+      const objectUrl = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+        try {
+          const maxWidth = 1280;
+          const scale = image.width > maxWidth ? maxWidth / image.width : 1;
+          const width = Math.max(1, Math.floor(image.width * scale));
+          const height = Math.max(1, Math.floor(image.height * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error("failed to prepare image canvas"));
+            return;
+          }
+          ctx.drawImage(image, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+          URL.revokeObjectURL(objectUrl);
+          resolve(dataUrl);
+        } catch (error) {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error("failed to process selected image"));
+        }
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("failed to load selected image"));
+      };
+      image.src = objectUrl;
     });
 
   const handlePaymentProofUpload = async (eventObj) => {
     const file = eventObj?.target?.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setSubmitError("payment proof upload must be an image file");
+      eventObj.target.value = "";
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setSubmitError("selected image is too large. choose an image under 8MB.");
+      eventObj.target.value = "";
+      return;
+    }
     setUploadingProof(true);
     try {
       const dataUrl = await uploadProofImage(file);
+      if (dataUrl.length > 2_000_000) {
+        setSubmitError("compressed image is still too large. use payment proof URL instead.");
+        return;
+      }
       setPaymentProofUrl(dataUrl);
+      setSubmitError("");
     } catch (uploadError) {
       setSubmitError(uploadError.message);
     } finally {
