@@ -394,6 +394,22 @@ const approveMerchandiseOrder = async (req, res) => {
       }
 
       if (ticket.status !== "Pending" || ticket.payment?.status !== "Pending") {
+        if (ticket.status === "Registered" && ticket.payment?.status === "Approved") {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(200).json({
+            message: "order already approved",
+            ticket: {
+              id: ticket._id,
+              ticketId: ticket.ticketId,
+              status: ticket.status,
+              payment: ticket.payment,
+              qrPayload: ticket.qrPayload,
+              qrCode: ticket.qrCode,
+            },
+            email: { sent: false, warning: "email not re-sent for already approved order" },
+          });
+        }
         await session.abortTransaction();
         await session.endSession();
         return res.status(409).json({ message: "order is not pending" });

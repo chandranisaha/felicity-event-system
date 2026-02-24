@@ -218,6 +218,16 @@ const EventDetailsPage = ({ auth }) => {
       return;
     }
 
+    if (
+      event?.eventType === "Merchandise" &&
+      typeof paymentProofUrl === "string" &&
+      paymentProofUrl.startsWith("data:image/") &&
+      paymentProofUrl.length > 1_500_000
+    ) {
+      setSubmitError("payment proof image is too large. use a smaller image or paste a public URL.");
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError("");
     try {
