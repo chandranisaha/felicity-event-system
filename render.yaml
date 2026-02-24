@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: felicity-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: CAPTCHA_ENFORCE
+        value: "false"
+      - key: CAPTCHA_PROVIDER
+        value: turnstile
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+      - key: RECAPTCHA_SECRET_KEY
+        sync: false
+      - key: LOGIN_RATE_LIMIT_MAX_ATTEMPTS
+        value: "5"
+      - key: LOGIN_RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: LOGIN_RATE_LIMIT_BLOCK_MS
+        value: "900000"
+      - key: CAS_ENABLED
+        value: "false"
+      - key: CAS_LOGIN_URL
+        value: https://login.iiit.ac.in/cas/login
+      - key: CAS_VALIDATE_BASE_URL
+        value: https://login-new.iiit.ac.in/cas
+      - key: CAS_FALLBACK_VALIDATE_BASE_URL
+        value: https://login.iiit.ac.in/cas
+      - key: FRONTEND_BASE_URL
+        sync: false
