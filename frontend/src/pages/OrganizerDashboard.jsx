@@ -557,21 +557,38 @@ const OrganizerDashboard = ({ auth }) => {
                         <td>{participant.status}</td>
                         <td>{participant.attended ? "Attended" : "Not Attended"}</td>
                         <td>
-                          {Array.isArray(participant.formResponses) && participant.formResponses.length > 0 ? (
-                            <button
-                              type="button"
-                              className="subtle-btn"
-                              onClick={() => setSelectedParticipantResponses({
-                                participantName: participant.name,
-                                ticketId: participant.ticketId,
-                                responses: participant.formResponses || [],
-                              })}
-                            >
-                              View Responses
-                            </button>
-                          ) : (
-                            "-"
-                          )}
+                          {(() => {
+                            const hasFormResponses = Array.isArray(participant.formResponses) && participant.formResponses.length > 0;
+                            const hasMerchOrder = participant.merchandiseOrder && Number(participant.merchandiseOrder.quantity || 0) > 0;
+                            if (!hasFormResponses && !hasMerchOrder) return "-";
+
+                            const mergedResponses = hasFormResponses
+                              ? [...participant.formResponses]
+                              : [
+                                  { label: "Variant", value: participant.merchandiseOrder?.variant || "-" },
+                                  { label: "Size", value: participant.merchandiseOrder?.size || "-" },
+                                  { label: "Color", value: participant.merchandiseOrder?.color || "-" },
+                                  { label: "Quantity", value: participant.merchandiseOrder?.quantity || 0 },
+                                  { label: "Payment Status", value: participant.payment?.status || "-" },
+                                  { label: "Payment Proof URL", value: participant.payment?.proofUrl || "-" },
+                                ];
+
+                            return (
+                              <button
+                                type="button"
+                                className="subtle-btn"
+                                onClick={() =>
+                                  setSelectedParticipantResponses({
+                                    participantName: participant.name,
+                                    ticketId: participant.ticketId,
+                                    responses: mergedResponses,
+                                  })
+                                }
+                              >
+                                {hasFormResponses ? "View Responses" : "View Details"}
+                              </button>
+                            );
+                          })()}
                         </td>
                       </tr>
                     ))}
