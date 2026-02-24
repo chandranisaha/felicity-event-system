@@ -27,6 +27,7 @@ const OrganizerDashboard = ({ auth }) => {
   const [selectedPendingOrder, setSelectedPendingOrder] = useState(null);
   const [selectedParticipantResponses, setSelectedParticipantResponses] = useState(null);
   const [editSuccessNotice, setEditSuccessNotice] = useState(null);
+  const [orderActionInFlight, setOrderActionInFlight] = useState({});
 
   const qrScannerRef = useRef(null);
   const imageScanInputRef = useRef(null);
@@ -146,6 +147,9 @@ const OrganizerDashboard = ({ auth }) => {
   };
 
   const reviewOrder = async (id, action) => {
+    const key = `${id}:${action}`;
+    if (orderActionInFlight[key]) return;
+    setOrderActionInFlight((prev) => ({ ...prev, [key]: true }));
     try {
       await apiRequest({
         path: `/api/organizers/orders/${id}/${action}`,
@@ -155,7 +159,19 @@ const OrganizerDashboard = ({ auth }) => {
       });
       await loadEventData(selectedEventId);
     } catch (err) {
-      setError(err.message);
+      const message = String(err.message || "");
+      if (message.toLowerCase().includes("409") || message.toLowerCase().includes("already")) {
+        setError("Order was already processed. The list has been refreshed.");
+        await loadEventData(selectedEventId);
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setOrderActionInFlight((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
     }
   };
 
@@ -611,10 +627,10 @@ const OrganizerDashboard = ({ auth }) => {
                   <p>Proof URL: {order.payment?.proofUrl}</p>
                   <div className="row">
                     <button type="button" onClick={() => reviewOrder(order.ticketDbId, "approve")}>
-                      Approve
+                      {orderActionInFlight[`${order.ticketDbId}:approve`] ? "Approving..." : "Approve"}
                     </button>
                     <button type="button" className="danger-btn" onClick={() => reviewOrder(order.ticketDbId, "reject")}>
-                      Reject
+                      {orderActionInFlight[`${order.ticketDbId}:reject`] ? "Rejecting..." : "Reject"}
                     </button>
                   </div>
                 </div>
@@ -658,10 +674,10 @@ const OrganizerDashboard = ({ auth }) => {
                         View
                       </button>
                       <button type="button" className="success-btn" onClick={() => reviewOrder(order.ticketDbId, "approve")}>
-                        Approve
+                        {orderActionInFlight[`${order.ticketDbId}:approve`] ? "Approving..." : "Approve"}
                       </button>
                       <button type="button" className="danger-btn" onClick={() => reviewOrder(order.ticketDbId, "reject")}>
-                        Reject
+                        {orderActionInFlight[`${order.ticketDbId}:reject`] ? "Rejecting..." : "Reject"}
                       </button>
                     </div>
                   </article>
@@ -874,22 +890,24 @@ const OrganizerDashboard = ({ auth }) => {
               <button
                 type="button"
                 className="success-btn"
+                disabled={!!orderActionInFlight[`${selectedPendingOrder.ticketDbId}:approve`]}
                 onClick={async () => {
                   await reviewOrder(selectedPendingOrder.ticketDbId, "approve");
                   setSelectedPendingOrder(null);
                 }}
               >
-                Approve
+                {orderActionInFlight[`${selectedPendingOrder.ticketDbId}:approve`] ? "Approving..." : "Approve"}
               </button>
               <button
                 type="button"
                 className="danger-btn"
+                disabled={!!orderActionInFlight[`${selectedPendingOrder.ticketDbId}:reject`]}
                 onClick={async () => {
                   await reviewOrder(selectedPendingOrder.ticketDbId, "reject");
                   setSelectedPendingOrder(null);
                 }}
               >
-                Reject
+                {orderActionInFlight[`${selectedPendingOrder.ticketDbId}:reject`] ? "Rejecting..." : "Reject"}
               </button>
             </div>
           </div>

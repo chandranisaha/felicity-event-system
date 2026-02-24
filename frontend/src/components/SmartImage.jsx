@@ -14,7 +14,6 @@ const SmartImage = ({ src, alt, className = "", ...rest }) => {
       alt={alt}
       className={className}
       referrerPolicy="no-referrer"
-      crossOrigin="anonymous"
       onError={() => {
         setIndex((prev) => {
           if (prev + 1 < candidates.length) return prev + 1;
