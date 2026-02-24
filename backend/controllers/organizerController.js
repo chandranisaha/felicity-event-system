@@ -20,6 +20,14 @@ const ensureOrganizerEvent = async (eventId, organizerId) => {
   return Event.findOne({ _id: eventId, organizer: organizerId });
 };
 
+const normalizeFormResponses = (formResponses) => {
+  if (Array.isArray(formResponses)) return formResponses;
+  if (formResponses && typeof formResponses === "object") {
+    return Object.entries(formResponses).map(([label, value]) => ({ label, value }));
+  }
+  return [];
+};
+
 const markAttendanceInternal = async ({ ticket, organizerId, source, note = "" }) => {
   const previousAttended = Boolean(ticket.attended);
   ticket.attended = true;
@@ -79,7 +87,7 @@ const getEventAnalytics = async (req, res) => {
         attendanceTime: ticket.attendanceTime,
         scannedBy: ticket.scannedBy,
         teamName: ticket.teamName || "",
-        formResponses: ticket.formResponses || [],
+        formResponses: normalizeFormResponses(ticket.formResponses),
         merchandiseOrder: ticket.merchandiseOrder,
         registeredAt: ticket.createdAt,
       })),
@@ -428,13 +436,21 @@ const approveMerchandiseOrder = async (req, res) => {
       await session.commitTransaction();
       await session.endSession();
 
-      const emailResult = await sendTicketEmail({
-        to: participant.email,
-        participantName: participant.name,
-        event,
-        ticketId: ticket.ticketId,
-        qrCode,
-      });
+      let emailResult = { sent: false };
+      try {
+        emailResult = await sendTicketEmail({
+          to: participant.email,
+          participantName: participant.name,
+          event,
+          ticketId: ticket.ticketId,
+          qrCode,
+        });
+      } catch (emailError) {
+        emailResult = {
+          sent: false,
+          warning: `order approved but email failed: ${emailError.message}`,
+        };
+      }
 
       return res.status(200).json({
         message: "merchandise order approved",
@@ -451,13 +467,6 @@ const approveMerchandiseOrder = async (req, res) => {
     } catch (error) {
       await session.abortTransaction();
       await session.endSession();
-
-      if (String(error.message || "").toLowerCase().includes("email")) {
-        return res.status(502).json({
-          message: "approval failed because ticket email could not be sent",
-          error: error.message,
-        });
-      }
 
       const isWriteConflict = error?.code === 112 || String(error.message || "").toLowerCase().includes("write conflict");
       if (isWriteConflict && attempt < maxRetries) {

@@ -332,6 +332,13 @@ const isValidHttpUrl = (value) => {
   }
 };
 
+const isValidImageProofInput = (value) => {
+  if (typeof value !== "string" || !value.trim()) return false;
+  const trimmed = value.trim();
+  if (isValidHttpUrl(trimmed)) return true;
+  return /^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(trimmed);
+};
+
 const postEventToDiscordWebhook = async ({ webhookUrl, event }) => {
   if (!webhookUrl) return;
   try {
@@ -808,9 +815,9 @@ const registerForEvent = async (req, res) => {
         return res.status(400).json({ message: "selected merchandise variant does not exist" });
       }
 
-      if (!isValidHttpUrl(req.body?.paymentProofUrl)) {
+      if (!isValidImageProofInput(req.body?.paymentProofUrl)) {
         await session.abortTransaction();
-        return res.status(400).json({ message: "valid paymentProofUrl is required for merchandise order" });
+        return res.status(400).json({ message: "valid paymentProofUrl (http/https URL or image data URL) is required for merchandise order" });
       }
 
       payment = {
@@ -858,13 +865,20 @@ const registerForEvent = async (req, res) => {
       await ticket.save({ session });
 
       const participant = await Participant.findById(participantId).select("name email").session(session);
-      emailResult = await sendTicketEmail({
-        to: participant.email,
-        participantName: participant.name,
-        event,
-        ticketId: ticket.ticketId,
-        qrCode,
-      });
+      try {
+        emailResult = await sendTicketEmail({
+          to: participant.email,
+          participantName: participant.name,
+          event,
+          ticketId: ticket.ticketId,
+          qrCode,
+        });
+      } catch (emailError) {
+        emailResult = {
+          sent: false,
+          warning: `ticket registered but email failed: ${emailError.message}`,
+        };
+      }
     }
 
     await session.commitTransaction();
@@ -892,13 +906,6 @@ const registerForEvent = async (req, res) => {
 
     if (error.code === 11000) {
       return res.status(409).json({ message: "duplicate ticket data detected" });
-    }
-
-    if (String(error.message || "").toLowerCase().includes("email")) {
-      return res.status(502).json({
-        message: "registration failed because ticket email could not be sent",
-        error: error.message,
-      });
     }
 
     return res.status(500).json({ message: "failed to register for event", error: error.message });

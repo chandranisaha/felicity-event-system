@@ -18,6 +18,7 @@ const EventDetailsPage = ({ auth }) => {
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [paymentProofUrl, setPaymentProofUrl] = useState("");
+  const [uploadingProof, setUploadingProof] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [discoverEvents, setDiscoverEvents] = useState([]);
@@ -143,8 +144,31 @@ const EventDetailsPage = ({ auth }) => {
     !deadlinePassed &&
     !eventCompleted &&
     !outOfStock &&
-    (event?.eventType !== "Merchandise" ||
+      (event?.eventType !== "Merchandise" ||
       (hasMerchVariants && selectedVariantKey && selectedSize && selectedColor && Number(quantity) >= 1 && paymentProofUrl.trim()));
+
+  const uploadProofImage = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("failed to read selected image"));
+      reader.readAsDataURL(file);
+    });
+
+  const handlePaymentProofUpload = async (eventObj) => {
+    const file = eventObj?.target?.files?.[0];
+    if (!file) return;
+    setUploadingProof(true);
+    try {
+      const dataUrl = await uploadProofImage(file);
+      setPaymentProofUrl(dataUrl);
+    } catch (uploadError) {
+      setSubmitError(uploadError.message);
+    } finally {
+      setUploadingProof(false);
+      eventObj.target.value = "";
+    }
+  };
 
   const register = async () => {
     if (!auth?.token || auth?.user?.role !== "participant") {
@@ -425,6 +449,13 @@ const EventDetailsPage = ({ auth }) => {
                 Payment Proof URL
                 <input value={paymentProofUrl} onChange={(e) => setPaymentProofUrl(e.target.value)} placeholder="https://..." />
               </label>
+              <div className="action-row">
+                <label className="subtle-btn" style={{ cursor: "pointer" }}>
+                  {uploadingProof ? "Uploading..." : "Upload Payment Proof Image"}
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={handlePaymentProofUpload} />
+                </label>
+                {paymentProofUrl ? <span className="muted">payment proof attached</span> : null}
+              </div>
             </>
           )}
 
