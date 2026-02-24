@@ -1,235 +1,146 @@
 # Felicity Event Management System
 
-A full-stack MERN platform for Felicity event operations with three role-based portals: Participant, Organizer, and Admin.
+A full-stack MERN platform for managing Felicity events with role-based portals for Participants, Organizers, and Admin.
 
-This project centralizes event registration, merchandise workflows, ticketing, QR attendance, organizer governance, and forum communication into one system.
+## 1. Assignment Scope
+This submission implements:
+- Part 1 core system requirements (authentication, models, event workflows, participant/organizer/admin features)
+- Part 2 advanced features with selected Tier A, Tier B, and Tier C items
 
-## 1. Assignment Context
+## 2. Technology Stack (MERN)
 
-Course: **Design & Analysis of Software Systems**  
-Deliverable Type: **MERN full-stack implementation (Part 1 + selected Part 2 tiers)**
+### Backend
+- Node.js
+- Express.js
+- MongoDB + Mongoose
+- bcryptjs (password hashing)
+- jsonwebtoken (JWT auth)
+- nodemailer (SMTP email)
+- qrcode (ticket QR generation)
+- socket.io (real-time forum updates)
+- dotenv, cors
 
-## 2. Tech Stack and Justification
+### Frontend
+- React (Vite)
+- react-router-dom (routing + role-protected pages)
+- socket.io-client (forum real-time updates)
+- html5-qrcode (camera/image attendance scan)
 
-### Backend (Node.js + Express + MongoDB)
-- **Express.js**: REST API routing and role-based middleware control.
-- **MongoDB + Mongoose**: schema-driven modeling, references across users/events/tickets, and fast iteration for dynamic forms.
-- **bcryptjs**: password hashing (no plaintext credentials).
-- **jsonwebtoken (JWT)**: stateless auth for protected endpoints.
-- **nodemailer**: real SMTP ticket delivery.
-- **qrcode**: QR generation for ticket validation and attendance.
-- **socket.io**: real-time forum messaging and notifications.
-- **cors + dotenv**: environment safety and cross-origin frontend/backend operation.
+## 3. User Roles
+- Participant (IIIT / Non-IIIT)
+- Organizer (clubs/councils/fest teams)
+- Admin
 
-### Frontend (React)
-- **React + Vite**: fast dev loop and modular role-based portal UI.
-- **react-router-dom**: protected routing and role redirection.
-- **socket.io-client**: live discussion updates.
-- **html5-qrcode**: organizer-side camera and image-based QR scanning.
+Each account has exactly one role.
 
-## 3. System Roles
-
-- **Participant**: IIIT or Non-IIIT user, event registration and tracking.
-- **Organizer (Club/Council/Fest Team)**: event lifecycle, analytics, moderation, merchandise approvals.
-- **Admin**: organizer provisioning, governance, and reset request handling.
-
-Each user has exactly one role.
-
-## 4. Assignment Compliance Matrix (Part 1)
+## 4. Implemented Core Features (Part 1)
 
 ### 4.1 Authentication and Security
-- Participant registration/login implemented.
-- Organizer self-registration blocked; organizer accounts created by admin only.
-- Admin is backend-provisioned; no UI admin registration flow.
-- Passwords hashed with bcrypt.
-- JWT auth + role middleware on protected routes.
-- Session persistence via stored auth token; logout clears token.
-- CAPTCHA support and login rate-limit foundation implemented (configurable by env).
-- IIIT participant flow includes domain validation and optional CAS path (env-driven).
+- Participant registration/login
+- Organizer login only (no self-registration)
+- Admin backend-provisioned (no UI registration)
+- bcrypt password hashing
+- JWT auth + role middleware
+- Session persistence and logout token clear
+- Optional CAPTCHA + login rate-limiting foundation
+- Optional CAS flow support (env-controlled)
 
 ### 4.2 User Onboarding and Preferences
-- Post-signup participant onboarding supports:
-  - multi-select interests,
-  - follow clubs/organizers,
-  - skip-and-complete-later behavior.
-- Preferences stored in DB and editable in profile.
-- Browse/recommendation ordering can prioritize followed organizers/interests.
+- Participant onboarding with:
+  - interests (multi-select)
+  - followed clubs/organizers
+- Preferences persisted and editable in profile
+- Used in recommendation/filtering flows
 
 ### 4.3 Data Models
-Implemented model set includes:
-- `Participant`
-- `Organizer`
-- `Admin`
-- `Event`
-- `Ticket`
-- `OrganizerPasswordResetRequest`
-- `ForumMessage`
-- `ParticipantNotification`
-- `OrganizerNotification`
+- Participant
+- Organizer
+- Admin
+- Event
+- Ticket
+- OrganizerPasswordResetRequest
+- ForumMessage
+- ParticipantNotification
+- OrganizerNotification
 
-Participant fields include first/last name, email, participant type, college/org, contact number, password hash, preferences.
-Organizer fields include name, category, description, contact email, auth state, and reset history.
-
-### 4.4 Event System
-- Event type support:
-  - **Normal Event (individual)**
-  - **Merchandise Event (individual purchase)**
+### 4.4 Event Types and Attributes
+- Normal Event (individual registration)
+- Merchandise Event (individual purchase/registration)
 - Required event attributes implemented:
-  - name, description, event type, eligibility,
-  - registration deadline,
-  - start/end date,
-  - registration limit,
-  - registration fee,
-  - organizer reference,
-  - tags.
-- Dynamic status computed on fetch (upcoming/ongoing/completed) with manual override support.
+  - name, description, eventType, eligibility
+  - registration deadline
+  - start/end dates
+  - registration limit
+  - registration fee
+  - organizer reference
+  - tags
+- Dynamic event status on fetch (Upcoming/Ongoing/Completed) with manual override support
 
 ### 4.5 Participant Features
-- Navbar includes dashboard, browse events, clubs/organizers, profile, logout.
-- My Events dashboard includes upcoming + categorized history.
-- Event records include ticket/status and event linking.
-- Browse events supports search/filter workflow and trending display.
-- Event details include registration/purchase validation checks.
-- Profile supports editable and non-editable field split.
-- Clubs listing + follow/unfollow implemented.
-- Organizer details page includes organizer profile + upcoming/past events.
+- Navbar: Dashboard, Browse Events, Clubs/Organizers, Profile, Logout
+- My Events dashboard (upcoming/history categories)
+- Browse with search/filters/trending
+- Event details with registration/purchase constraints
+- Profile edit + password change
+- Clubs listing + follow/unfollow
+- Organizer detail page (profile + events)
+- In-app notifications
 
-### 4.6 Event Registration Workflows
-- **Normal events**:
-  - custom field validation,
-  - registration constraints,
-  - ticket creation,
-  - ticket email with QR,
-  - history visibility.
-- **Merchandise events**:
-  - variant and quantity handling,
-  - stock/purchase-limit checks,
-  - payment workflow integration,
-  - approval-gated ticket + QR generation.
+### 4.6 Registration Workflows
+- Normal event registration:
+  - dynamic form validation
+  - ticket generation with QR
+  - ticket email dispatch
+- Merchandise flow:
+  - variant/size/color/quantity support
+  - purchase limit and stock checks
+  - pending approval workflow
+  - approval-based final ticket + QR
 
 ### 4.7 Organizer Features
-- Organizer navigation and dashboard implemented.
-- Event analytics available per event and aggregate views.
-- Participant listing and attendance controls available.
-- CSV attendance export implemented.
-- Event create/edit flow supports draft and publish paths.
-- Form builder supports text/dropdown/checkbox/file-URL with required flags and ordering.
-- Form lock enforced after first registration.
-- Organizer profile includes Discord webhook setting.
+- Dashboard with event controls and analytics
+- Attendance marking (manual/QR scan)
+- Attendance CSV export
+- Pending merchandise approval actions
+- Event create/edit with draft/publish flow
+- Dynamic form builder with lock after first registration
+- Organizer profile + Discord webhook config
+- Organizer notification center
 
 ### 4.8 Admin Features
-- Admin dashboard, organizer management, and reset-request tabs implemented.
-- Create organizer (manual password or auto-generated password).
-- Disable/enable organizer account.
-- Permanent organizer delete with cascade data removal.
-- Organizer password reset request review and resolution.
+- Dashboard overview
+- Organizer creation (manual/auto password)
+- Disable/enable organizers
+- Permanent organizer delete with cascading cleanup
+- Organizer password reset request management
 
 ## 5. Advanced Features (Part 2)
 
-### Tier A (2 selected, 8 marks each)
-1. **Merchandise Payment Approval Workflow**
-2. **QR Scanner and Attendance Tracking**
+### Tier A (2 selected)
+1. Merchandise Payment Approval Workflow
+2. QR Scanner and Attendance Tracking
 
-#### A1. Merchandise Payment Approval Workflow
-- Participant submits order with payment proof URL.
-- Order state transitions: Pending -> Approved/Rejected.
-- No QR and no final ticket confirmation until approval.
-- Stock decremented on approval only.
-- Approval triggers final ticketing and email confirmation.
+### Tier B (2 selected)
+1. Real-Time Discussion Forum
+2. Organizer Password Reset Workflow
 
-#### A2. QR Scanner and Attendance Tracking
-- QR payload and QR image generated per valid ticket.
-- Attendance scan by payload/camera/image.
-- Duplicate scan blocked with conflict response.
-- Attendance metadata: timestamp, scanner, audit trail.
-- CSV export endpoint for attendance records.
+### Tier C (1 selected)
+1. Add to Calendar Integration (.ics + Google + Outlook)
 
-### Tier B (2 selected, 6 marks each)
-1. **Real-Time Discussion Forum**
-2. **Organizer Password Reset Workflow**
-
-#### B1. Real-Time Discussion Forum
-- Event-level live message threads (Socket.IO).
-- Organizer moderation (pin/delete).
-- Reactions support.
-- Notification pipeline for relevant event participants/organizers.
-
-#### B2. Organizer Password Reset Workflow
-- Organizer can submit reset request with reason.
-- Admin lists and resolves requests.
-- On approval, system generates a new password and stores hash.
-- Request status tracking + organizer reset history preserved.
-
-### Tier C (1 selected, 2 marks)
-1. **Add to Calendar Integration**
-
-#### C1. Calendar Integration
-- `.ics` export for registered events.
-- Google Calendar and Outlook launch links.
-
-## 6. Key API Surface
-
-### Auth
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/auth/cas/start`
-- `GET /api/auth/cas/callback`
-
-### Events
-- `GET /api/events/public`
-- `GET /api/events/public/:eventId`
-- `GET /api/events/my-events` (Organizer)
-- `POST /api/events` (Organizer)
-- `PATCH /api/events/:eventId` (Organizer)
-- `POST /api/events/:eventId/register` (Participant)
-- `POST /api/events/:eventId/cancel-merchandise` (Participant)
-
-### Organizer
-- `GET /api/organizers/analytics`
-- `GET /api/organizers/events/:eventId/analytics`
-- `GET /api/organizers/events/:eventId/attendance/export`
-- `POST /api/organizers/attendance/scan`
-- `POST /api/organizers/orders/:ticketId/approve`
-- `POST /api/organizers/orders/:ticketId/reject`
-- `POST /api/organizers/password-reset/request`
-- `GET /api/organizers/notifications`
-- `DELETE /api/organizers/notifications/:notificationId`
-
-### Participant
-- `GET /api/participants/my-events`
-- `GET /api/participants/profile`
-- `PATCH /api/participants/profile`
-- `POST /api/participants/profile/change-password`
-- `GET /api/participants/onboarding/options`
-- `POST /api/participants/onboarding/complete`
-- `GET /api/participants/organizers`
-- `GET /api/participants/organizers/:organizerId`
-- `POST /api/participants/organizers/:organizerId/follow`
-- `DELETE /api/participants/organizers/:organizerId/follow`
-- `GET /api/participants/notifications`
-- `DELETE /api/participants/notifications/:notificationId`
-
-### Admin
-- `POST /api/admin/create-organizer`
-- `GET /api/admin/organizers`
-- `PATCH /api/admin/organizer/:id/toggle-active`
-- `DELETE /api/admin/organizer/:id/permanent`
-- `GET /api/admin/password-reset-requests`
-- `PATCH /api/admin/password-reset-requests/:id`
-
-### Forum
-- `GET /api/events/:eventId/forum/messages`
-- `POST /api/events/:eventId/forum/messages`
-- `PATCH /api/events/:eventId/forum/messages/:messageId/pin`
-- `PATCH /api/events/:eventId/forum/messages/:messageId/react`
-- `DELETE /api/events/:eventId/forum/messages/:messageId`
+## 6. API Modules (High-Level)
+- Auth: `/api/auth/*`
+- Events: `/api/events/*`
+- Forum: `/api/events/:eventId/forum/*`
+- Participant: `/api/participants/*`
+- Organizer: `/api/organizers/*`
+- Admin: `/api/admin/*`
 
 ## 7. Local Setup
 
 ### Prerequisites
 - Node.js 18+
 - npm 9+
-- MongoDB Atlas connection string
+- MongoDB Atlas URI
 
 ### Install
 ```bash
@@ -237,43 +148,6 @@ cd backend
 npm install
 cd ../frontend
 npm install
-```
-
-### Environment
-Create `backend/.env` from `backend/.env.example`.
-
-Minimum required:
-```env
-PORT=5000
-MONGO_URI=<your_mongo_uri>
-JWT_SECRET=<strong_secret>
-```
-
-For email/QR and advanced verification:
-```env
-EMAIL_USER=<smtp_user>
-EMAIL_PASS=<smtp_password_or_app_password>
-EMAIL_FROM=Felicity Event System <your_email@example.com>
-```
-
-Optional hardening:
-```env
-CAPTCHA_ENFORCE=false
-CAPTCHA_PROVIDER=turnstile
-TURNSTILE_SECRET_KEY=
-RECAPTCHA_SECRET_KEY=
-LOGIN_RATE_LIMIT_MAX_ATTEMPTS=5
-LOGIN_RATE_LIMIT_WINDOW_MS=900000
-LOGIN_RATE_LIMIT_BLOCK_MS=900000
-```
-
-Optional CAS:
-```env
-CAS_ENABLED=false
-CAS_LOGIN_URL=https://login.iiit.ac.in/cas/login
-CAS_VALIDATE_BASE_URL=https://login-new.iiit.ac.in/cas
-CAS_FALLBACK_VALIDATE_BASE_URL=https://login.iiit.ac.in/cas
-FRONTEND_BASE_URL=http://localhost:5173
 ```
 
 ### Run
@@ -287,40 +161,61 @@ cd frontend
 npm run dev
 ```
 
-- Frontend: `http://localhost:5173`
 - Backend: `http://localhost:5000`
+- Frontend: `http://localhost:5173`
 
-## 8. Utility Scripts
+## 8. Environment Variables (Backend)
+Minimum required:
+```env
+PORT=5000
+MONGO_URI=<mongo_uri>
+JWT_SECRET=<secret>
+```
 
+Email options:
+```env
+# SMTP
+EMAIL_PROVIDER=smtp
+EMAIL_USER=<gmail_or_smtp_user>
+EMAIL_PASS=<app_password_or_smtp_pass>
+EMAIL_FROM=Felicity Event System <sender@example.com>
+
+# OR Resend
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=<resend_api_key>
+EMAIL_FROM=<verified_resend_sender>
+```
+
+Optional:
+```env
+CAPTCHA_ENFORCE=false
+CAS_ENABLED=false
+FRONTEND_BASE_URL=http://localhost:5173
+```
+
+## 9. Deployment
+
+### Production URLs
+- Frontend URL: https://felicity-event-system-beta.vercel.app
+- Backend Base API URL: https://felicity-backend-suf9.onrender.com
+
+### Hosting
+- Frontend: Vercel
+- Backend: Render
+- Database: MongoDB Atlas
+
+### Required Submission File
+`deployment.txt` is included at repository root with production links.
+
+## 10. Utility Scripts
 From `backend`:
 ```bash
 npm run provision:admin
 npm run seed:events
 ```
 
-- `provision:admin`: ensures backend-only admin provisioning.
-- `seed:events`: seeds realistic organizer/event data for demo/testing.
-
-## 9. Deployment Notes
-
-As per assignment, include root-level `deployment.txt` containing:
-- Frontend production URL
-- Backend base API URL
-
-Suggested hosting:
-- Frontend: Vercel/Netlify
-- Backend: Render/Railway/Fly/Heroku-style Node service
-- Database: MongoDB Atlas
-
-## 10. Implementation Notes
-
-- Organizer/club terms are treated as equivalent entities.
-- Eligibility logic supports IIIT/Non-IIIT/All use cases.
-- Disabled organizers are blocked from future login issuance.
-- Permanent organizer delete cascades related data.
-- Ticket email delivery is implemented as real SMTP behavior.
-- Dynamic event status is computed by event timing and can be manually overridden where needed.
-
-## 11. Current Status
-
-The project is implemented as a full multi-role MERN system with assignment-required core workflows plus selected advanced features from Tier A, Tier B, and Tier C.
+## 11. Notes
+- Organizer and club are treated as equivalent entities.
+- Disabled organizers cannot log in again.
+- Permanent organizer delete removes associated organizer-owned data.
+- QR attendance includes duplicate-scan handling and audit-safe flows.
