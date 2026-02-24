@@ -219,3 +219,96 @@ npm run seed:events
 - Disabled organizers cannot log in again.
 - Permanent organizer delete removes associated organizer-owned data.
 - QR attendance includes duplicate-scan handling and audit-safe flows.
+
+## 12. Design Choices, Workflows, and Technical Decisions (Final Report Section)
+
+### 12.1 Library, Framework, and Module Justification
+
+#### Backend Justification
+- **Express.js** was selected for clear REST route organization and middleware composition across role-based access control.
+- **Mongoose** was selected to enforce schema-level validation, references, and lifecycle hooks for complex entities (events, tickets, forum, notifications).
+- **bcryptjs** was used to satisfy secure password storage requirements and avoid plaintext password persistence.
+- **jsonwebtoken** was selected for stateless session/auth handling and role checks in protected routes.
+- **nodemailer** was used for SMTP-based ticket emails in local and standard deployments.
+- **Resend API integration** was added as a provider alternative for reliable hosted email delivery on production platforms.
+- **qrcode** was selected for deterministic QR generation tied to ticket identity.
+- **socket.io** was selected for real-time forum updates and in-app communication.
+- **cors** was used to support frontend-backend separation during local/dev/prod deployment.
+- **dotenv** was used to isolate secrets and environment-specific runtime settings.
+
+#### Frontend Justification
+- **React** was selected for modular, component-based role portals.
+- **Vite** was selected for fast local dev and optimized production builds.
+- **react-router-dom** was selected for protected role-based routing and dashboard flows.
+- **socket.io-client** was selected for live forum/event updates.
+- **html5-qrcode** was selected to support organizer attendance scanning via camera and image upload.
+
+#### UI Library Note
+- The assignment allows any UI framework (Tailwind, Bootstrap, Material UI, etc.).
+- This implementation uses custom CSS with React components to maintain direct control of style consistency and avoid dependency lock-in.
+
+### 12.2 End-to-End User Workflows
+
+#### Participant Workflow
+1. Register (IIIT / Non-IIIT path) and login.
+2. Complete or skip onboarding preferences (interests, followed clubs).
+3. Browse/search/filter events and open details.
+4. Register for normal event (dynamic form) or place merchandise order.
+5. Receive ticket record and QR (immediate for normal, post-approval for merchandise).
+6. Track history, notifications, and profile preferences.
+
+#### Organizer Workflow
+1. Login with admin-provisioned credentials.
+2. Create event as draft, configure fields, publish.
+3. View analytics and participant/ticket data.
+4. Approve/reject pending merchandise requests.
+5. Mark attendance via QR (camera/image/payload fallback).
+6. Export attendance CSV and moderate forum.
+
+#### Admin Workflow
+1. Login using backend-provisioned admin account.
+2. Create organizer accounts (manual or generated password).
+3. Disable/enable or permanently delete organizers.
+4. Review and resolve organizer password reset requests.
+
+### 12.3 Advanced Feature Selection Justification
+
+#### Tier A Choices
+1. **Merchandise Payment Approval Workflow**: selected for strong business-process modeling (pending -> approved/rejected), stock integrity, and approval-gated ticketing.
+2. **QR Scanner & Attendance Tracking**: selected for operational event-day utility, duplicate scan prevention, and measurable attendance reporting.
+
+#### Tier B Choices
+1. **Real-Time Discussion Forum**: selected to provide live event communication and organizer-moderated collaboration.
+2. **Organizer Password Reset Workflow**: selected to satisfy admin-governed account recovery requirements with auditable status flow.
+
+#### Tier C Choice
+1. **Add to Calendar Integration**: selected as a practical user-experience enhancement that improves attendance and schedule management.
+
+### 12.4 Key Technical Decisions
+- **Role isolation**: each API path is guarded by JWT + role middleware.
+- **Event status rendering**: computed dynamically by date, with manual override where applicable.
+- **Form locking rule**: organizer form structure becomes locked after first registration to protect data consistency.
+- **Merchandise stock safety**: stock decremented on approval stage, not at pending stage.
+- **Email resilience**: registration and approval logic proceed even when email dispatch fails, returning warning metadata.
+- **Approval idempotency**: repeated approve calls on already approved orders return safe success response.
+- **Large proof handling**: body size limits and client-side image compression mitigate payload rejection.
+
+### 12.5 Local Setup and Installation Summary
+- Install backend and frontend dependencies via npm.
+- Configure backend `.env` values (DB, JWT, email provider).
+- Run backend and frontend servers in separate terminals.
+- Use provided utility scripts for admin provisioning and seed data.
+
+### 12.6 Submission Directory Structure (Required)
+The project is organized for ZIP submission as:
+
+```text
+<roll_no>/
+|-- backend/
+|-- frontend/
+|-- README.md
+|-- deployment.txt
+```
+
+- `node_modules` is excluded from source submission.
+- Deployment links are provided in `deployment.txt`.
